@@ -1,0 +1,69 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.3' apply false
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java-library'
+}
+
+group = 'com.backend'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports{
+        mavenBom("org.springframework.boot:spring-boot-dependencies:3.3.4")
+    }
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-aop'
+    api 'org.springframework.boot:spring-boot-starter-security'
+    api 'org.springframework.security:spring-security-crypto:5.6.5'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'com.google.code.gson:gson:2.10.1'
+
+    api 'io.jsonwebtoken:jjwt-api:0.12.3'
+    api 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    api 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
+test{
+    minHeapSize = "2048m"
+    maxHeapSize = "4096m"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
