@@ -1,5 +1,6 @@
 package com.resumemanager.domain.llm.service;
 
+import io.netty.resolver.DefaultAddressResolverGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -10,23 +11,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
-import io.netty.resolver.DefaultAddressResolverGroup;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class LLMService {
 
-    @Value("${claude.api.key}")
-    private String claudeApiKey;
+    @Value("${openai.api.key}")
+    private String openaiApiKey;
 
-    private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-    private static final String MODEL = "claude-sonnet-4-6";
+    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String MODEL = "gpt-4.1-mini";
 
     /**
-     * Claude API 호출
+     * OpenAI Chat Completions API 호출
      */
     public String query(String systemPrompt, String userPrompt) {
         HttpClient httpClient = HttpClient.create()
@@ -36,34 +37,42 @@ public class LLMService {
         WebClient client = WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                .defaultHeader("x-api-key", claudeApiKey)
-                .defaultHeader("anthropic-version", "2023-06-01")
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openaiApiKey)
                 .build();
 
         Map<String, Object> requestBody = Map.of(
                 "model", MODEL,
-                "max_tokens", 4096,
-                "system", systemPrompt,
-                "messages", new Object[]{
+                "messages", List.of(
+                        Map.of("role", "system", "content", systemPrompt),
                         Map.of("role", "user", "content", userPrompt)
-                }
+                )
         );
 
-        log.info("Claude API 호출 시작 - 모델: {}", MODEL);
+        log.info("OpenAI API 호출 시작 - 모델: {}", MODEL);
         long startTime = System.currentTimeMillis();
 
         String responseBody = client.post()
-                .uri(CLAUDE_API_URL)
+                .uri(OPENAI_API_URL)
                 .body(BodyInserters.fromValue(requestBody))
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
 
         long elapsed = System.currentTimeMillis() - startTime;
-        log.info("Claude API 호출 완료 - 소요시간: {}ms", elapsed);
+        log.info("OpenAI API 호출 완료 - 소요시간: {}ms", elapsed);
 
         JSONObject resp = new JSONObject(responseBody);
-        JSONArray content = resp.getJSONArray("content");
-        return content.getJSONObject(0).getString("text");
+        JSONArray choices = resp.getJSONArray("choices");
+        String content = choices.getJSONObject(0).getJSONObject("message").getString("content");
+
+        if (resp.has("usage")) {
+            JSONObject usage = resp.getJSONObject("usage");
+            log.info("토큰 사용량 - prompt: {}, completion: {}, total: {}",
+                    usage.optInt("prompt_tokens", 0),
+                    usage.optInt("completion_tokens", 0),
+                    usage.optInt("total_tokens", 0));
+        }
+
+        return content;
     }
 }

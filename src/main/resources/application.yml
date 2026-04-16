@@ -88,9 +88,9 @@ chacha20:
   pepper: ${CHACHA20_PEPPER:resume-manager-pepper-value-32ch}
   password: ${CHACHA20_PASSWORD:resume-manager-password-value32c}
 
-claude:
+openai:
   api:
-    key: ${CLAUDE_API_KEY:}
+    key: ${OPENAI_API_KEY:}
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
